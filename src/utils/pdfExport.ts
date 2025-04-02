@@ -3,14 +3,16 @@ import { jsPDF } from 'jspdf';
 import { AppState, Founder } from '../types';
 import 'jspdf-autotable';
 
-// Extend the jsPDF type to include autoTable with the correct return type
+// Extend the jsPDF type to correctly include autoTable
 declare module 'jspdf' {
   interface jsPDF {
-    autoTable: (options: any) => {
+    autoTable: (options: any) => jsPDF;
+    // Add the previous property to the autoTable namespace
+    autoTable: {
       previous: {
         finalY: number;
       };
-    } & jsPDF;
+    };
   }
 }
 
