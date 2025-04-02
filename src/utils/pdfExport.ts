@@ -6,11 +6,19 @@ import 'jspdf-autotable';
 // Extend the jsPDF type to correctly include autoTable
 declare module 'jspdf' {
   interface jsPDF {
+    // Define autoTable as a method returning jsPDF
     autoTable: (options: any) => jsPDF;
-    // Add the previous property to the autoTable namespace
-    autoTable: {
-      previous: {
-        finalY: number;
+  }
+}
+
+// Define the global static property to access the previous finalY position
+declare global {
+  interface Window {
+    jspdf: {
+      AutoTableOutput: {
+        previous: {
+          finalY: number;
+        };
       };
     };
   }
@@ -49,15 +57,18 @@ export const generatePDF = (state: AppState): void => {
     headStyles: { fillColor: [90, 50, 168] },
   });
 
+  // Get the final Y position after the table
+  const finalY1 = (doc as any).lastAutoTable.finalY;
+
   // Scoring details
   doc.setFontSize(16);
   doc.setTextColor(0, 0, 0);
-  doc.text('Detailed Scoring', 20, doc.autoTable.previous.finalY + 15);
+  doc.text('Detailed Scoring', 20, finalY1 + 15);
 
   for (const founder of founders) {
     doc.setFontSize(12);
     doc.setTextColor(90, 50, 168);
-    doc.text(`${founder.name} - ${founder.role}`, 20, doc.autoTable.previous.finalY + 25);
+    doc.text(`${founder.name} - ${founder.role}`, 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 25 : finalY1 + 25);
     
     const scoreData = [
       ['Role in Project', founder.scores.role],
@@ -70,7 +81,7 @@ export const generatePDF = (state: AppState): void => {
     ];
 
     doc.autoTable({
-      startY: doc.autoTable.previous.finalY + 30,
+      startY: (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 30 : finalY1 + 30,
       head: [['Criterion', 'Score (0-10)']],
       body: scoreData,
       headStyles: { fillColor: [120, 80, 198] },
@@ -106,7 +117,7 @@ export const generatePDF = (state: AppState): void => {
         headStyles: { fillColor: [120, 80, 198] },
       });
 
-      yPosition = doc.autoTable.previous.finalY + 15;
+      yPosition = (doc as any).lastAutoTable.finalY + 15;
       
       // Add new page if needed
       if (yPosition > 250) {
@@ -119,13 +130,13 @@ export const generatePDF = (state: AppState): void => {
   // Progress Overview
   const completedMilestones = milestones.filter(m => m.completed);
   if (completedMilestones.length > 0) {
-    if (doc.autoTable.previous.finalY > 220) {
+    if ((doc as any).lastAutoTable && (doc as any).lastAutoTable.finalY > 220) {
       doc.addPage();
     }
     
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    doc.text('Startup Progress', 20, doc.autoTable.previous.finalY + 15);
+    doc.text('Startup Progress', 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 15 : 40);
 
     const milestoneData = milestones.map(milestone => [
       milestone.name,
@@ -133,7 +144,7 @@ export const generatePDF = (state: AppState): void => {
     ]);
 
     doc.autoTable({
-      startY: doc.autoTable.previous.finalY + 20,
+      startY: (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 20 : 45,
       head: [['Milestone', 'Status']],
       body: milestoneData,
       headStyles: { fillColor: [90, 50, 168] },
