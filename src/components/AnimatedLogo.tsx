@@ -23,7 +23,7 @@ const AnimatedLogo = () => {
     visible: {
       opacity: 1,
       transition: {
-        delay: 0.5,
+        delay: 0.2,
         when: "beforeChildren",
         staggerChildren: 0.3,
       },
@@ -70,7 +70,7 @@ const AnimatedLogo = () => {
           className="text-xl font-bold text-primary"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 2, duration: 1 }}
+          transition={{ delay: 1.5, duration: 0.8 }}
         >
           EGC
         </motion.span>
@@ -78,7 +78,7 @@ const AnimatedLogo = () => {
           className="text-xs text-gray-500"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 2.5, duration: 1 }}
+          transition={{ delay: 1.8, duration: 0.8 }}
         >
           Equity Growth Compass
         </motion.span>
