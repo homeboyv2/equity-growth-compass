@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import { AppState, DEFAULT_MILESTONES, Founder, FOUNDER_COLORS } from '../types';
 import { toast } from 'sonner';
@@ -26,7 +25,6 @@ const LOCAL_STORAGE_KEY = 'equity-growth-compass';
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'ADD_FOUNDER': {
-      // Assign a color from our palette based on the index
       const colorIndex = state.founders.length % FOUNDER_COLORS.length;
       const founderWithColor = {
         ...action.founder,
@@ -122,6 +120,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
     case 'RESET_APP':
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
       return initialState;
     default:
       return state;
@@ -137,12 +136,30 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState, () => {
-    const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return savedState ? JSON.parse(savedState) : initialState;
+    try {
+      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        if (parsedState && 
+            typeof parsedState === 'object' && 
+            Array.isArray(parsedState.founders) && 
+            Array.isArray(parsedState.milestones)) {
+          return parsedState;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading state from localStorage:', error);
+    }
+    return initialState;
   });
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      console.error('Error saving state to localStorage:', error);
+      toast.error('Failed to save your progress. Please check your browser storage settings.');
+    }
   }, [state]);
 
   return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>;
@@ -205,10 +222,8 @@ export const useMilestones = () => {
   };
 
   const resetApp = () => {
-    if (window.confirm('Are you sure you want to reset all data? This action cannot be undone.')) {
-      dispatch({ type: 'RESET_APP' });
-      toast.info('Application data has been reset');
-    }
+    dispatch({ type: 'RESET_APP' });
+    toast.info('Application data has been reset');
   };
 
   return {

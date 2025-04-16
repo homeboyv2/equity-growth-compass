@@ -60,31 +60,50 @@ export const generatePDF = (state: AppState): void => {
   // Get the final Y position after the table
   const finalY1 = (doc as any).lastAutoTable.finalY;
 
+  // Global Score Summary
+  doc.setFontSize(16);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Global Score Summary', 20, finalY1 + 15);
+  
+  // Calculate total scores
+  const totalScores = founders.reduce((total, founder) => {
+    return total + Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
+  }, 0);
+  
+  doc.setFontSize(12);
+  doc.text(`Total Team Score: ${totalScores}`, 20, finalY1 + 25);
+  doc.text(`Average Founder Score: ${(totalScores / founders.length).toFixed(1)}`, 20, finalY1 + 35);
+
   // Scoring details
   doc.setFontSize(16);
   doc.setTextColor(0, 0, 0);
-  doc.text('Detailed Scoring', 20, finalY1 + 15);
+  doc.text('Detailed Scoring', 20, finalY1 + 50);
 
   for (const founder of founders) {
     doc.setFontSize(12);
     doc.setTextColor(90, 50, 168);
-    doc.text(`${founder.name} - ${founder.role}`, 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 25 : finalY1 + 25);
+    doc.text(`${founder.name} - ${founder.role}`, 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 25 : finalY1 + 60);
+    
+    const totalFounderScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
     
     const scoreData = [
-      ['Role in Project', founder.scores.role],
-      ['Usefulness', founder.scores.usefulness],
-      ['Idea Contribution', founder.scores.ideaContribution],
-      ['Business Plan', founder.scores.businessPlan],
-      ['Domain Expertise', founder.scores.expertise],
-      ['Commitment & Risk', founder.scores.commitment],
-      ['Operations', founder.scores.operations],
+      ['Role in Project', founder.scores.role, `${((founder.scores.role / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Usefulness', founder.scores.usefulness, `${((founder.scores.usefulness / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Idea Contribution', founder.scores.ideaContribution, `${((founder.scores.ideaContribution / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Business Plan', founder.scores.businessPlan, `${((founder.scores.businessPlan / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Domain Expertise', founder.scores.expertise, `${((founder.scores.expertise / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Commitment & Risk', founder.scores.commitment, `${((founder.scores.commitment / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Operations', founder.scores.operations, `${((founder.scores.operations / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Total Score', totalFounderScore, '100%'],
     ];
 
     doc.autoTable({
-      startY: (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 30 : finalY1 + 30,
-      head: [['Criterion', 'Score (0-10)']],
+      startY: (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 30 : finalY1 + 65,
+      head: [['Criterion', 'Score (0-10)', 'Percentage']],
       body: scoreData,
       headStyles: { fillColor: [120, 80, 198] },
+      foot: [['Equity Allocation', '', `${founder.equityPercentage.toFixed(2)}%`]],
+      footStyles: { fillColor: [90, 50, 168], textColor: [255, 255, 255] },
     });
   }
 

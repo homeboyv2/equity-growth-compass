@@ -32,15 +32,17 @@ const AnimatedLogo = () => {
 
   return (
     <motion.div
-      className="flex items-center justify-center"
+      className="flex items-center justify-center cursor-pointer"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
     >
       <motion.svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 100 100"
-        className="w-16 h-16"
+        className="w-12 h-12 md:w-16 md:h-16"
         initial="hidden"
         animate="visible"
       >
@@ -52,6 +54,7 @@ const AnimatedLogo = () => {
           strokeWidth="4"
           fill="transparent"
           variants={pathVariants}
+          whileHover={{ scale: 1.05 }}
         />
         <motion.path
           d="M30 50 L 50 70 L 70 30"
@@ -59,16 +62,27 @@ const AnimatedLogo = () => {
           strokeWidth="4"
           fill="transparent"
           variants={pathVariants}
+          whileHover={{ scale: 1.1 }}
         />
       </motion.svg>
-      <motion.span
-        className="ml-2 text-xl font-bold"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2, duration: 1 }}
-      >
-        EGC
-      </motion.span>
+      <motion.div className="ml-2 flex flex-col">
+        <motion.span
+          className="text-xl font-bold text-primary"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2, duration: 1 }}
+        >
+          EGC
+        </motion.span>
+        <motion.span
+          className="text-xs text-gray-500"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2.5, duration: 1 }}
+        >
+          Equity Growth Compass
+        </motion.span>
+      </motion.div>
     </motion.div>
   );
 };
