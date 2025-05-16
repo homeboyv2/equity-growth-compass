@@ -1,26 +1,12 @@
 
 import { jsPDF } from 'jspdf';
 import { AppState, Founder, Milestone } from '../types';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // Extend the jsPDF type to correctly include autoTable
 declare module 'jspdf' {
   interface jsPDF {
-    // Define autoTable as a method returning jsPDF
-    autoTable: (options: any) => jsPDF;
-  }
-}
-
-// Define the global static property to access the previous finalY position
-declare global {
-  interface Window {
-    jspdf: {
-      AutoTableOutput: {
-        previous: {
-          finalY: number;
-        };
-      };
-    };
+    autoTable: typeof autoTable;
   }
 }
 
@@ -58,7 +44,7 @@ export const generatePDF = (state: AppState): void => {
   });
 
   // Get the final Y position after the table
-  const finalY1 = (doc as any).lastAutoTable.finalY;
+  const finalY1 = doc.lastAutoTable.finalY;
 
   // Contribution Weights Summary
   doc.setFontSize(16);
@@ -78,7 +64,7 @@ export const generatePDF = (state: AppState): void => {
     headStyles: { fillColor: [120, 80, 198] },
   });
   
-  const finalY2 = (doc as any).lastAutoTable.finalY;
+  const finalY2 = doc.lastAutoTable.finalY;
   
   // Milestone Weights
   doc.setFontSize(16);
@@ -98,7 +84,7 @@ export const generatePDF = (state: AppState): void => {
     headStyles: { fillColor: [120, 80, 198] },
   });
   
-  const finalY3 = (doc as any).lastAutoTable.finalY;
+  const finalY3 = doc.lastAutoTable.finalY;
 
   // Global Score Summary
   doc.setFontSize(16);
@@ -160,7 +146,7 @@ export const generatePDF = (state: AppState): void => {
       headStyles: { fillColor: [120, 80, 198] },
     });
     
-    yPosition = (doc as any).lastAutoTable.finalY + 10;
+    yPosition = doc.lastAutoTable.finalY + 10;
     
     // Scoring details
     const totalFounderScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
@@ -185,7 +171,7 @@ export const generatePDF = (state: AppState): void => {
       footStyles: { fillColor: [90, 50, 168], textColor: [255, 255, 255] },
     });
     
-    yPosition = (doc as any).lastAutoTable.finalY + 20;
+    yPosition = doc.lastAutoTable.finalY + 20;
   }
 
   // Equity Evolution History
@@ -218,7 +204,7 @@ export const generatePDF = (state: AppState): void => {
         headStyles: { fillColor: [120, 80, 198] },
       });
 
-      yPosition = (doc as any).lastAutoTable.finalY + 15;
+      yPosition = doc.lastAutoTable.finalY + 15;
       
       // Add new page if needed
       if (yPosition > 250) {
@@ -254,14 +240,11 @@ export const generatePDF = (state: AppState): void => {
       body: milestoneData,
       headStyles: { fillColor: [90, 50, 168] },
       bodyStyles: {
-        textColor: (data, row, column) => {
-          if (column === 2) {
-            const status = data.cell.raw;
-            if (status === 'Completed') return [0, 128, 0]; // green for completed
-            if (status === 'In Progress') return [0, 0, 255]; // blue for in progress
-            return [100, 100, 100]; // grey for pending
-          }
-          return [0, 0, 0]; // default black
+        textColor: (data) => {
+          const status = data.cell.raw;
+          if (status === 'Completed') return [0, 128, 0]; // green for completed
+          if (status === 'In Progress') return [0, 0, 255]; // blue for in progress
+          return [100, 100, 100]; // grey for pending
         },
       },
     });
