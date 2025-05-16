@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import { AppState, DEFAULT_MILESTONES, Founder, FOUNDER_COLORS } from '../types';
+import { AppState, DEFAULT_MILESTONES, Founder, FOUNDER_COLORS, DEFAULT_CONTRIBUTION_WEIGHTS } from '../types';
 import { toast } from 'sonner';
 
 type AppAction =
@@ -11,6 +11,8 @@ type AppAction =
   | { type: 'UPDATE_EQUITY_PERCENTAGES' }
   | { type: 'SET_CURRENT_MILESTONE'; id: string }
   | { type: 'COMPLETE_MILESTONE'; id: string }
+  | { type: 'UPDATE_MILESTONE_WEIGHT'; id: string; weight: number }
+  | { type: 'UPDATE_CONTRIBUTION_WEIGHT'; contributionType: keyof typeof DEFAULT_CONTRIBUTION_WEIGHTS; weight: number }
   | { type: 'SAVE_MILESTONE_HISTORY' }
   | { type: 'RESET_APP' };
 
@@ -19,6 +21,7 @@ const initialState: AppState = {
   milestones: DEFAULT_MILESTONES,
   currentMilestoneId: 'initial',
   history: [],
+  contributionWeights: DEFAULT_CONTRIBUTION_WEIGHTS,
 };
 
 const LOCAL_STORAGE_KEY = 'equity-growth-compass';
@@ -54,16 +57,60 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_EQUITY_PERCENTAGES': {
       if (state.founders.length === 0) return state;
 
+      // Calculate total weighted scores
       const totalScores = state.founders.reduce((acc, founder) => {
-        const founderScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
-        return acc + founderScore;
+        // Calculate base score from criteria
+        const criteriaScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
+        
+        // Apply contribution weights if they exist
+        let contributionMultiplier = 1.0;
+        if (founder.contributions) {
+          contributionMultiplier = 
+            (founder.contributions.cash || 0) * state.contributionWeights.cash +
+            (founder.contributions.time || 0) * state.contributionWeights.time +
+            (founder.contributions.skills || 0) * state.contributionWeights.skills;
+          
+          // Normalize the multiplier
+          contributionMultiplier = Math.max(0.1, contributionMultiplier / 3);
+        }
+        
+        // Get current milestone weight
+        const currentMilestone = state.milestones.find(m => m.id === state.currentMilestoneId);
+        const milestoneWeight = currentMilestone?.weight || 1.0;
+        
+        // Final weighted score
+        const weightedScore = criteriaScore * contributionMultiplier * milestoneWeight;
+        
+        return acc + weightedScore;
       }, 0);
 
       if (totalScores === 0) return state;
 
       const updatedFounders = state.founders.map(founder => {
-        const founderScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
-        const equityPercentage = (founderScore / totalScores) * 100;
+        // Calculate base score from criteria
+        const criteriaScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
+        
+        // Apply contribution weights if they exist
+        let contributionMultiplier = 1.0;
+        if (founder.contributions) {
+          contributionMultiplier = 
+            (founder.contributions.cash || 0) * state.contributionWeights.cash +
+            (founder.contributions.time || 0) * state.contributionWeights.time +
+            (founder.contributions.skills || 0) * state.contributionWeights.skills;
+          
+          // Normalize the multiplier
+          contributionMultiplier = Math.max(0.1, contributionMultiplier / 3);
+        }
+        
+        // Get current milestone weight
+        const currentMilestone = state.milestones.find(m => m.id === state.currentMilestoneId);
+        const milestoneWeight = currentMilestone?.weight || 1.0;
+        
+        // Final weighted score
+        const weightedScore = criteriaScore * contributionMultiplier * milestoneWeight;
+        
+        const equityPercentage = (weightedScore / totalScores) * 100;
+        
         return {
           ...founder,
           equityPercentage,
@@ -103,6 +150,23 @@ function appReducer(state: AppState, action: AppAction): AppState {
           return nextMilestoneIndex < state.milestones.length ? 
             state.milestones[nextMilestoneIndex].id : state.currentMilestoneId;
         })(),
+      };
+    case 'UPDATE_MILESTONE_WEIGHT':
+      return {
+        ...state,
+        milestones: state.milestones.map(milestone => 
+          milestone.id === action.id 
+            ? { ...milestone, weight: action.weight } 
+            : milestone
+        ),
+      };
+    case 'UPDATE_CONTRIBUTION_WEIGHT':
+      return {
+        ...state,
+        contributionWeights: {
+          ...state.contributionWeights,
+          [action.contributionType]: action.weight
+        }
       };
     case 'SAVE_MILESTONE_HISTORY': {
       const currentMilestone = state.milestones.find(m => m.id === state.currentMilestoneId);
@@ -177,12 +241,13 @@ export const useAppContext = () => {
 export const useFounders = () => {
   const { state, dispatch } = useAppContext();
   
-  const addFounder = (founder: Omit<Founder, 'id' | 'equityPercentage' | 'color'>) => {
+  const addFounder = (founder: Omit<Founder, 'id' | 'equityPercentage' | 'color' | 'contributions'>) => {
     const newFounder: Founder = {
       ...founder,
       id: Date.now().toString(),
       equityPercentage: 0,
       color: '#000000', // This will be overridden in the reducer
+      contributions: { cash: 0, time: 0, skills: 0 }
     };
     dispatch({ type: 'ADD_FOUNDER', founder: newFounder });
     dispatch({ type: 'UPDATE_EQUITY_PERCENTAGES' });
@@ -222,6 +287,11 @@ export const useMilestones = () => {
     toast.success(`${state.milestones.find(m => m.id === id)?.name} milestone completed`);
   };
 
+  const updateMilestoneWeight = (id: string, weight: number) => {
+    dispatch({ type: 'UPDATE_MILESTONE_WEIGHT', id, weight });
+    dispatch({ type: 'UPDATE_EQUITY_PERCENTAGES' });
+  };
+
   const resetApp = () => {
     dispatch({ type: 'RESET_APP' });
     toast.info('Application data has been reset');
@@ -233,6 +303,28 @@ export const useMilestones = () => {
     history: state.history,
     setCurrentMilestone,
     completeMilestone,
+    updateMilestoneWeight,
     resetApp,
+  };
+};
+
+export const useContributionWeights = () => {
+  const { state, dispatch } = useAppContext();
+  
+  const updateContributionWeight = (
+    contributionType: keyof typeof DEFAULT_CONTRIBUTION_WEIGHTS, 
+    weight: number
+  ) => {
+    dispatch({ 
+      type: 'UPDATE_CONTRIBUTION_WEIGHT', 
+      contributionType, 
+      weight 
+    });
+    dispatch({ type: 'UPDATE_EQUITY_PERCENTAGES' });
+  };
+  
+  return {
+    contributionWeights: state.contributionWeights,
+    updateContributionWeight,
   };
 };

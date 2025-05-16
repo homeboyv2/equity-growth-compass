@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useMilestones } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Download } from 'lucide-react';
+import { RefreshCw, Download, Settings } from 'lucide-react';
 import AnimatedLogo from './AnimatedLogo';
 import { motion } from 'framer-motion';
 import { generatePDF } from '@/utils/pdfExport';
@@ -19,11 +19,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header: React.FC = () => {
   const { resetApp } = useMilestones();
   const { state } = useAppContext();
   const [isOpen, setIsOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   const handleReset = () => {
     resetApp();
@@ -32,10 +39,18 @@ const Header: React.FC = () => {
   
   const handleExportPDF = () => {
     try {
-      generatePDF(state);
-      toast.success('PDF report generated successfully');
+      setIsExporting(true);
+      toast.info('Generating PDF report...');
+      
+      // Use setTimeout to allow the toast to render before potentially blocking with PDF generation
+      setTimeout(() => {
+        generatePDF(state);
+        setIsExporting(false);
+        toast.success('PDF report generated successfully');
+      }, 100);
     } catch (error) {
       console.error('Error generating PDF:', error);
+      setIsExporting(false);
       toast.error('Failed to generate PDF report');
     }
   };
@@ -55,14 +70,37 @@ const Header: React.FC = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1"
+                  disabled={isExporting}
+                >
+                  <Download className={`h-4 w-4 ${isExporting ? 'animate-pulse' : ''}`} />
+                  <span>{isExporting ? 'Exporting...' : 'Export'}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={handleExportPDF}>
+                  Export PDF Report
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </motion.div>
+          
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             <Button 
               variant="outline"
               size="sm"
               className="flex items-center gap-1"
-              onClick={handleExportPDF}
             >
-              <Download className="h-4 w-4" />
-              <span>Export PDF</span>
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
             </Button>
           </motion.div>
           
