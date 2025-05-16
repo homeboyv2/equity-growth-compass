@@ -1,6 +1,6 @@
 
 import { jsPDF } from 'jspdf';
-import { AppState, Founder, Milestone } from '../types';
+import { AppState, Founder } from '../types';
 import 'jspdf-autotable';
 
 // Extend the jsPDF type to correctly include autoTable
@@ -25,7 +25,7 @@ declare global {
 }
 
 export const generatePDF = (state: AppState): void => {
-  const { founders, history, milestones, contributionWeights } = state;
+  const { founders, history, milestones } = state;
   const doc = new jsPDF();
   
   // Title
@@ -60,109 +60,30 @@ export const generatePDF = (state: AppState): void => {
   // Get the final Y position after the table
   const finalY1 = (doc as any).lastAutoTable.finalY;
 
-  // Contribution Weights Summary
-  doc.setFontSize(16);
-  doc.setTextColor(0, 0, 0);
-  doc.text('Contribution Weights', 20, finalY1 + 15);
-  
-  const contributionWeightsData = [
-    ['Cash Contributions', `${contributionWeights.cash.toFixed(2)}x`],
-    ['Time Investments', `${contributionWeights.time.toFixed(2)}x`],
-    ['Skills & Expertise', `${contributionWeights.skills.toFixed(2)}x`],
-  ];
-  
-  doc.autoTable({
-    startY: finalY1 + 20,
-    head: [['Contribution Type', 'Weight Multiplier']],
-    body: contributionWeightsData,
-    headStyles: { fillColor: [120, 80, 198] },
-  });
-  
-  const finalY2 = (doc as any).lastAutoTable.finalY;
-  
-  // Milestone Weights
-  doc.setFontSize(16);
-  doc.setTextColor(0, 0, 0);
-  doc.text('Milestone Weights', 20, finalY2 + 15);
-  
-  const milestoneWeightsData = milestones.map(milestone => [
-    milestone.name,
-    `${milestone.weight.toFixed(2)}x`,
-    milestone.completed ? 'Completed' : milestone.current ? 'In Progress' : 'Pending',
-  ]);
-  
-  doc.autoTable({
-    startY: finalY2 + 20,
-    head: [['Milestone', 'Weight Multiplier', 'Status']],
-    body: milestoneWeightsData,
-    headStyles: { fillColor: [120, 80, 198] },
-  });
-  
-  const finalY3 = (doc as any).lastAutoTable.finalY;
-
   // Global Score Summary
   doc.setFontSize(16);
   doc.setTextColor(0, 0, 0);
-  doc.text('Global Score Summary', 20, finalY3 + 15);
+  doc.text('Global Score Summary', 20, finalY1 + 15);
   
-  // Calculate total scores with all weights applied
+  // Calculate total scores
   const totalScores = founders.reduce((total, founder) => {
-    // Base scores from criteria
-    const criteriaTotal = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
-    
-    // Contribution multiplier
-    const contributionMultiplier = founder.contributions ? 
-      ((founder.contributions.cash || 0) * contributionWeights.cash +
-       (founder.contributions.time || 0) * contributionWeights.time +
-       (founder.contributions.skills || 0) * contributionWeights.skills) / 3 : 1;
-    
-    return total + criteriaTotal * Math.max(0.1, contributionMultiplier);
+    return total + Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
   }, 0);
   
   doc.setFontSize(12);
-  doc.text(`Total Team Score: ${totalScores.toFixed(1)}`, 20, finalY3 + 25);
-  doc.text(`Average Founder Score: ${founders.length ? (totalScores / founders.length).toFixed(1) : "0"}`, 20, finalY3 + 35);
-  
-  // Add new page for detailed founder data
-  doc.addPage();
+  doc.text(`Total Team Score: ${totalScores}`, 20, finalY1 + 25);
+  doc.text(`Average Founder Score: ${founders.length ? (totalScores / founders.length).toFixed(1) : "0"}`, 20, finalY1 + 35);
 
-  // Detailed Founder Contributions
+  // Scoring details
   doc.setFontSize(16);
   doc.setTextColor(0, 0, 0);
-  doc.text('Founder Contributions & Scoring', 20, 20);
-  
-  let yPosition = 30;
-  
-  // For each founder, create a section with their contributions
+  doc.text('Detailed Scoring', 20, finalY1 + 50);
+
   for (const founder of founders) {
-    // Skip to new page if needed
-    if (yPosition > 240) {
-      doc.addPage();
-      yPosition = 20;
-    }
-    
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setTextColor(90, 50, 168);
-    doc.text(`${founder.name} - ${founder.role}`, 20, yPosition);
-    yPosition += 10;
+    doc.text(`${founder.name} - ${founder.role}`, 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 25 : finalY1 + 60);
     
-    // Contribution data
-    const contributionData = [
-      ['Cash Contributions', founder.contributions?.cash || 0, `${contributionWeights.cash.toFixed(2)}x`],
-      ['Time Investments', founder.contributions?.time || 0, `${contributionWeights.time.toFixed(2)}x`],
-      ['Skills & Expertise', founder.contributions?.skills || 0, `${contributionWeights.skills.toFixed(2)}x`],
-    ];
-    
-    doc.autoTable({
-      startY: yPosition,
-      head: [['Contribution Type', 'Value', 'Weight Multiplier']],
-      body: contributionData,
-      headStyles: { fillColor: [120, 80, 198] },
-    });
-    
-    yPosition = (doc as any).lastAutoTable.finalY + 10;
-    
-    // Scoring details
     const totalFounderScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
     
     const scoreData = [
@@ -177,7 +98,7 @@ export const generatePDF = (state: AppState): void => {
     ];
 
     doc.autoTable({
-      startY: yPosition,
+      startY: (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 30 : finalY1 + 65,
       head: [['Criterion', 'Score (0-10)', 'Percentage']],
       body: scoreData,
       headStyles: { fillColor: [120, 80, 198] },
@@ -185,18 +106,23 @@ export const generatePDF = (state: AppState): void => {
       footStyles: { fillColor: [90, 50, 168], textColor: [255, 255, 255] },
     });
     
-    yPosition = (doc as any).lastAutoTable.finalY + 20;
+    // Add a new page if we're running out of space
+    if ((doc as any).lastAutoTable.finalY > 250) {
+      doc.addPage();
+    }
   }
 
   // Equity Evolution History
   if (history.length > 0) {
-    doc.addPage();
+    if ((doc as any).lastAutoTable && (doc as any).lastAutoTable.finalY > 200) {
+      doc.addPage();
+    }
     
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    doc.text('Equity Evolution History', 20, 20);
+    doc.text('Equity Evolution History', 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 20 : 20);
 
-    let yPosition = 30;
+    let yPosition = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 30 : 30;
     for (const entry of history) {
       doc.setFontSize(12);
       doc.setTextColor(90, 50, 168);
@@ -231,37 +157,30 @@ export const generatePDF = (state: AppState): void => {
   // Progress Overview
   const completedMilestones = milestones.filter(m => m.completed);
   if (completedMilestones.length > 0 || milestones.some(m => m.current)) {
-    if (yPosition > 220) {
+    if ((doc as any).lastAutoTable && (doc as any).lastAutoTable.finalY > 220) {
       doc.addPage();
-      yPosition = 20;
-    } else {
-      yPosition += 20;
     }
     
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    doc.text('Startup Progress', 20, yPosition);
+    doc.text('Startup Progress', 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 15 : 40);
 
     const milestoneData = milestones.map(milestone => [
       milestone.name,
-      `${milestone.weight.toFixed(2)}x`,
       milestone.completed ? 'Completed' : milestone.current ? 'In Progress' : 'Pending',
     ]);
 
     doc.autoTable({
-      startY: yPosition + 5,
-      head: [['Milestone', 'Weight', 'Status']],
+      startY: (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 20 : 45,
+      head: [['Milestone', 'Status']],
       body: milestoneData,
       headStyles: { fillColor: [90, 50, 168] },
       bodyStyles: {
-        textColor: (data, row, column) => {
-          if (column === 2) {
-            const status = data.cell.raw;
-            if (status === 'Completed') return [0, 128, 0]; // green for completed
-            if (status === 'In Progress') return [0, 0, 255]; // blue for in progress
-            return [100, 100, 100]; // grey for pending
-          }
-          return [0, 0, 0]; // default black
+        textColor: (data) => {
+          const status = data.cell.raw;
+          if (status === 'Completed') return [0, 128, 0]; // green for completed
+          if (status === 'In Progress') return [0, 0, 255]; // blue for in progress
+          return [100, 100, 100]; // grey for pending
         },
       },
     });

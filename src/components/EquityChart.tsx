@@ -86,32 +86,15 @@ const EquityChart: React.FC<EquityChartProps> = ({ founders }) => {
             animationBegin={300}
           >
             {data.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={entry.color}
-                className="hover:opacity-80 transition-opacity cursor-pointer"
-              />
+              <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
           <Tooltip 
             formatter={(value: number) => `${value.toFixed(2)}%`} 
             separator=": "
             animationDuration={300}
-            wrapperStyle={{ 
-              background: 'rgba(255, 255, 255, 0.95)',
-              border: '1px solid #e2e8f0',
-              borderRadius: '0.375rem',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-              padding: '0.5rem'
-            }}
           />
-          <Legend 
-            verticalAlign="bottom" 
-            height={36}
-            formatter={(value) => (
-              <span style={{ color: '#4b5563', fontSize: '0.75rem' }}>{value}</span>
-            )}
-          />
+          <Legend verticalAlign="bottom" height={36} />
         </PieChart>
       </ResponsiveContainer>
     </motion.div>
