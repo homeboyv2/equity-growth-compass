@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import { useMilestones } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
+import { generatePDF } from '@/utils/pdfExport';
 import { useAppContext } from '@/context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, BarChart } from 'lucide-react';
+import { FileDown, ChevronDown, ChevronUp, BarChart } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -23,6 +25,16 @@ const HistoryTable: React.FC = () => {
   if (history.length === 0 && state.founders.length === 0) {
     return null;
   }
+
+  const handleExportPDF = () => {
+    try {
+      generatePDF(state);
+      toast.success('PDF report generated successfully');
+    } catch (error) {
+      toast.error('Failed to generate PDF report');
+      console.error('Error generating PDF:', error);
+    }
+  };
 
   // Calculate global score summary
   const calculateGlobalScores = () => {
@@ -59,6 +71,17 @@ const HistoryTable: React.FC = () => {
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold">Equity Distribution Summary</h2>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleExportPDF}
+              className="flex items-center gap-1"
+            >
+              <FileDown className="h-4 w-4" />
+              <span>Export PDF</span>
+            </Button>
+          </div>
         </div>
         
         <div className="p-4 bg-gray-50 rounded-lg">
@@ -123,6 +146,15 @@ const HistoryTable: React.FC = () => {
           >
             <BarChart className="h-4 w-4" />
             <span>{showGlobalSummary ? 'Hide Summary' : 'Show Summary'}</span>
+          </Button>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handleExportPDF}
+            className="flex items-center gap-1"
+          >
+            <FileDown className="h-4 w-4" />
+            <span>Export PDF</span>
           </Button>
         </div>
       </div>
