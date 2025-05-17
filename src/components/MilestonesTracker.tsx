@@ -1,15 +1,12 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useMilestones } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { Slider } from '@/components/ui/slider';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const MilestonesTracker: React.FC = () => {
-  const { milestones, currentMilestone, setCurrentMilestone, completeMilestone, updateMilestoneWeight } = useMilestones();
-  const [showWeights, setShowWeights] = useState(false);
+  const { milestones, currentMilestone, setCurrentMilestone, completeMilestone } = useMilestones();
   
   const handleCompleteMilestone = () => {
     if (!currentMilestone) return;
@@ -18,24 +15,11 @@ const MilestonesTracker: React.FC = () => {
     toast.success(`${currentMilestone.name} milestone completed`);
   };
 
-  const handleWeightChange = (id: string, weight: number[]) => {
-    updateMilestoneWeight(id, weight[0]);
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 border">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Startup Growth Stages</h2>
         <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowWeights(!showWeights)}
-            className="flex items-center gap-1"
-          >
-            {showWeights ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            <span>{showWeights ? 'Hide Weights' : 'Configure Weights'}</span>
-          </Button>
           <Button 
             variant="outline" 
             size="sm"
@@ -48,41 +32,6 @@ const MilestonesTracker: React.FC = () => {
           </Button>
         </div>
       </div>
-      
-      <AnimatePresence>
-        {showWeights && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden mb-6"
-          >
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium mb-3">Milestone Impact Weights</h3>
-              <p className="text-xs text-gray-500 mb-4">
-                Adjust how much each milestone impacts the equity distribution. Higher weights give more influence to a milestone.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {milestones.map((milestone) => (
-                  <div key={milestone.id} className="space-y-2 p-3 bg-white rounded-md">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{milestone.name}</span>
-                      <span className="text-sm font-bold">×{milestone.weight.toFixed(1)}</span>
-                    </div>
-                    <Slider 
-                      defaultValue={[milestone.weight]}
-                      min={0.1}
-                      max={3}
-                      step={0.1}
-                      onValueChange={(value) => handleWeightChange(milestone.id, value)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       
       <div className="flex overflow-x-auto pb-4 gap-0 mt-4">
         {milestones.map((milestone, index) => (
@@ -124,11 +73,6 @@ const MilestonesTracker: React.FC = () => {
               <p className="text-[10px] text-gray-400 mt-1 hidden sm:block">
                 {milestone.description}
               </p>
-              {showWeights && (
-                <p className="text-[10px] font-medium text-primary mt-1">
-                  ×{milestone.weight.toFixed(1)}
-                </p>
-              )}
             </div>
           </div>
         ))}

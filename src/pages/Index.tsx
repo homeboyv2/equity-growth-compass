@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import MilestonesTracker from '@/components/MilestonesTracker';
@@ -7,22 +7,13 @@ import EquityChart from '@/components/EquityChart';
 import AddFounderForm from '@/components/AddFounderForm';
 import FounderScoring from '@/components/FounderScoring';
 import HistoryTable from '@/components/HistoryTable';
-import ContributionForm from '@/components/ContributionForm';
-import ContributionsList from '@/components/ContributionsList';
-import ContributionWeightConfigurator from '@/components/ContributionWeightConfigurator';
-import StepSummary from '@/components/StepSummary';
 import { useFounders, useMilestones } from '@/context/AppContext';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   const { founders } = useFounders();
   const { currentMilestone } = useMilestones();
-  const [selectedFounderId, setSelectedFounderId] = useState<string | null>(null);
-  const [showSummary, setShowSummary] = useState<boolean>(false);
 
   // Animation variants
   const containerVariants = {
@@ -61,12 +52,6 @@ const Index = () => {
           <motion.div variants={itemVariants} className="md:col-span-3">
             <MilestonesTracker />
           </motion.div>
-
-          {currentMilestone && showSummary && (
-            <motion.div variants={itemVariants} className="md:col-span-3">
-              <StepSummary milestone={currentMilestone} founders={founders} />
-            </motion.div>
-          )}
           
           <motion.div variants={itemVariants} className="md:col-span-1">
             <div className="space-y-6">
@@ -91,48 +76,22 @@ const Index = () => {
                   </CardContent>
                 </Card>
               </motion.div>
-
-              <motion.div variants={itemVariants}>
-                <ContributionWeightConfigurator />
-              </motion.div>
-              
-              {selectedFounderId && (
-                <motion.div 
-                  variants={itemVariants}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                >
-                  <ContributionForm founderId={selectedFounderId} />
-                </motion.div>
-              )}
             </div>
           </motion.div>
           
           <motion.div variants={itemVariants} className="md:col-span-2 space-y-6">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold">
-                {currentMilestone?.name} - Founder Analysis
-              </h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSummary(!showSummary)}
-                className="flex items-center gap-1"
-              >
-                {showSummary ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                <span>{showSummary ? 'Hide Summary' : 'Show Summary'}</span>
-              </Button>
-            </div>
-
             <motion.div 
               className="bg-white rounded-lg shadow-sm p-6 border"
               variants={itemVariants}
               whileHover={{ boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
               transition={{ duration: 0.3 }}
             >
+              <h2 className="text-lg font-semibold mb-4">
+                {currentMilestone?.name} - Founder Contribution Scoring
+              </h2>
               <p className="text-sm text-gray-500 mb-6">
-                Score each founder's contribution across the seven criteria and add specific contributions by type.
-                The equity distribution will update automatically based on the total scores and contributions.
+                Score each founder's contribution across the seven criteria. 
+                The equity distribution will update automatically based on the total scores.
               </p>
               
               {founders.length === 0 ? (
@@ -160,7 +119,7 @@ const Index = () => {
                 </motion.div>
               ) : (
                 <motion.div 
-                  className="space-y-6"
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-6"
                   variants={{
                     hidden: { opacity: 0 },
                     visible: {
@@ -184,63 +143,9 @@ const Index = () => {
                           transition: { type: 'spring', stiffness: 100, damping: 8 }
                         }
                       }}
+                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
                     >
-                      <Card>
-                        <CardContent className="p-4">
-                          <Tabs defaultValue="scoring">
-                            <div className="flex justify-between items-center mb-4">
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className="w-4 h-4 rounded-full" 
-                                  style={{ backgroundColor: founder.color }}
-                                ></div>
-                                <h3 className="font-semibold">
-                                  {founder.name} - {founder.role} 
-                                  <span className="ml-2 font-bold text-primary">
-                                    ({founder.equityPercentage.toFixed(2)}%)
-                                  </span>
-                                </h3>
-                              </div>
-                              <TabsList>
-                                <TabsTrigger value="scoring">Scoring</TabsTrigger>
-                                <TabsTrigger value="contributions">
-                                  Contributions ({founder.contributions?.length || 0})
-                                </TabsTrigger>
-                              </TabsList>
-                            </div>
-
-                            <TabsContent value="scoring">
-                              <FounderScoring founder={founder} />
-                            </TabsContent>
-
-                            <TabsContent value="contributions">
-                              <div className="space-y-4">
-                                {selectedFounderId === founder.id ? (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onClick={() => setSelectedFounderId(null)}
-                                  >
-                                    Cancel Adding Contribution
-                                  </Button>
-                                ) : (
-                                  <Button 
-                                    size="sm" 
-                                    onClick={() => setSelectedFounderId(founder.id)}
-                                  >
-                                    Add New Contribution
-                                  </Button>
-                                )}
-                                
-                                <ContributionsList 
-                                  founderId={founder.id} 
-                                  contributions={founder.contributions || []} 
-                                />
-                              </div>
-                            </TabsContent>
-                          </Tabs>
-                        </CardContent>
-                      </Card>
+                      <FounderScoring founder={founder} />
                     </motion.div>
                   ))}
                 </motion.div>

@@ -1,15 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
-import { 
-  AppState, 
-  DEFAULT_MILESTONES, 
-  Founder, 
-  FOUNDER_COLORS, 
-  Contribution,
-  ContributionType,
-  DEFAULT_CONTRIBUTION_WEIGHTS,
-  Milestone
-} from '../types';
+import { AppState, DEFAULT_MILESTONES, Founder, FOUNDER_COLORS } from '../types';
 import { toast } from 'sonner';
 
 type AppAction =
@@ -17,11 +8,6 @@ type AppAction =
   | { type: 'UPDATE_FOUNDER'; founder: Founder }
   | { type: 'REMOVE_FOUNDER'; id: string }
   | { type: 'SET_FOUNDERS'; founders: Founder[] }
-  | { type: 'ADD_CONTRIBUTION'; founderId: string; contribution: Contribution }
-  | { type: 'UPDATE_CONTRIBUTION'; founderId: string; contribution: Contribution }
-  | { type: 'REMOVE_CONTRIBUTION'; founderId: string; contributionId: string }
-  | { type: 'UPDATE_CONTRIBUTION_WEIGHT'; contributionType: ContributionType; weight: number }
-  | { type: 'UPDATE_MILESTONE_WEIGHT'; milestoneId: string; weight: number }
   | { type: 'UPDATE_EQUITY_PERCENTAGES' }
   | { type: 'SET_CURRENT_MILESTONE'; id: string }
   | { type: 'COMPLETE_MILESTONE'; id: string }
@@ -32,7 +18,6 @@ const initialState: AppState = {
   founders: [],
   milestones: DEFAULT_MILESTONES,
   currentMilestoneId: 'initial',
-  contributionWeights: DEFAULT_CONTRIBUTION_WEIGHTS,
   history: [],
 };
 
@@ -66,107 +51,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         founders: action.founders,
       };
-    case 'ADD_CONTRIBUTION': {
-      return {
-        ...state,
-        founders: state.founders.map((founder) => {
-          if (founder.id === action.founderId) {
-            return {
-              ...founder,
-              contributions: [...(founder.contributions || []), action.contribution]
-            };
-          }
-          return founder;
-        })
-      };
-    }
-    case 'UPDATE_CONTRIBUTION': {
-      return {
-        ...state,
-        founders: state.founders.map((founder) => {
-          if (founder.id === action.founderId) {
-            return {
-              ...founder,
-              contributions: (founder.contributions || []).map(cont => 
-                cont.id === action.contribution.id ? action.contribution : cont
-              )
-            };
-          }
-          return founder;
-        })
-      };
-    }
-    case 'REMOVE_CONTRIBUTION': {
-      return {
-        ...state,
-        founders: state.founders.map((founder) => {
-          if (founder.id === action.founderId) {
-            return {
-              ...founder,
-              contributions: (founder.contributions || []).filter(cont => cont.id !== action.contributionId)
-            };
-          }
-          return founder;
-        })
-      };
-    }
-    case 'UPDATE_CONTRIBUTION_WEIGHT': {
-      return {
-        ...state,
-        contributionWeights: {
-          ...state.contributionWeights,
-          [action.contributionType]: action.weight
-        }
-      };
-    }
-    case 'UPDATE_MILESTONE_WEIGHT': {
-      return {
-        ...state,
-        milestones: state.milestones.map(milestone => 
-          milestone.id === action.milestoneId ? { ...milestone, weight: action.weight } : milestone
-        )
-      };
-    }
     case 'UPDATE_EQUITY_PERCENTAGES': {
       if (state.founders.length === 0) return state;
 
-      // Get the current milestone
-      const currentMilestone = state.milestones.find(m => m.id === state.currentMilestoneId);
-      if (!currentMilestone) return state;
-
-      // Calculate total weighted scores across all founders
       const totalScores = state.founders.reduce((acc, founder) => {
-        // Base scores from criteria
-        const criteriaScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
-        
-        // Contribution scores with type weights
-        const contributionsScore = (founder.contributions || []).reduce((sum, contribution) => {
-          const weight = state.contributionWeights[contribution.type];
-          return sum + (contribution.amount * weight);
-        }, 0);
-        
-        // Apply milestone weight to total score
-        const totalScore = (criteriaScore + contributionsScore) * currentMilestone.weight;
-        return acc + totalScore;
+        const founderScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
+        return acc + founderScore;
       }, 0);
 
       if (totalScores === 0) return state;
 
-      // Calculate equity percentage for each founder
       const updatedFounders = state.founders.map(founder => {
-        // Base scores from criteria
-        const criteriaScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
-        
-        // Contribution scores with type weights
-        const contributionsScore = (founder.contributions || []).reduce((sum, contribution) => {
-          const weight = state.contributionWeights[contribution.type];
-          return sum + (contribution.amount * weight);
-        }, 0);
-        
-        // Apply milestone weight to total score
-        const totalFounderScore = (criteriaScore + contributionsScore) * currentMilestone.weight;
-        const equityPercentage = (totalFounderScore / totalScores) * 100;
-        
+        const founderScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
+        const equityPercentage = (founderScore / totalScores) * 100;
         return {
           ...founder,
           equityPercentage,
@@ -280,13 +177,12 @@ export const useAppContext = () => {
 export const useFounders = () => {
   const { state, dispatch } = useAppContext();
   
-  const addFounder = (founder: Omit<Founder, 'id' | 'equityPercentage' | 'color' | 'contributions'>) => {
+  const addFounder = (founder: Omit<Founder, 'id' | 'equityPercentage' | 'color'>) => {
     const newFounder: Founder = {
       ...founder,
       id: Date.now().toString(),
       equityPercentage: 0,
       color: '#000000', // This will be overridden in the reducer
-      contributions: []
     };
     dispatch({ type: 'ADD_FOUNDER', founder: newFounder });
     dispatch({ type: 'UPDATE_EQUITY_PERCENTAGES' });
@@ -304,36 +200,11 @@ export const useFounders = () => {
     toast.info('Co-founder removed');
   };
 
-  const addContribution = (founderId: string, contribution: Omit<Contribution, 'id' | 'date'>) => {
-    const newContribution: Contribution = {
-      ...contribution,
-      id: Date.now().toString(),
-      date: new Date().toISOString()
-    };
-    dispatch({ type: 'ADD_CONTRIBUTION', founderId, contribution: newContribution });
-    dispatch({ type: 'UPDATE_EQUITY_PERCENTAGES' });
-    toast.success('Contribution added');
-  };
-  
-  const updateContribution = (founderId: string, contribution: Contribution) => {
-    dispatch({ type: 'UPDATE_CONTRIBUTION', founderId, contribution });
-    dispatch({ type: 'UPDATE_EQUITY_PERCENTAGES' });
-  };
-
-  const removeContribution = (founderId: string, contributionId: string) => {
-    dispatch({ type: 'REMOVE_CONTRIBUTION', founderId, contributionId });
-    dispatch({ type: 'UPDATE_EQUITY_PERCENTAGES' });
-    toast.info('Contribution removed');
-  };
-
   return {
     founders: state.founders,
     addFounder,
     updateFounder,
     removeFounder,
-    addContribution,
-    updateContribution,
-    removeContribution,
   };
 };
 
@@ -351,12 +222,6 @@ export const useMilestones = () => {
     toast.success(`${state.milestones.find(m => m.id === id)?.name} milestone completed`);
   };
 
-  const updateMilestoneWeight = (id: string, weight: number) => {
-    dispatch({ type: 'UPDATE_MILESTONE_WEIGHT', milestoneId: id, weight });
-    dispatch({ type: 'UPDATE_EQUITY_PERCENTAGES' });
-    toast.success('Milestone weight updated');
-  };
-
   const resetApp = () => {
     dispatch({ type: 'RESET_APP' });
     toast.info('Application data has been reset');
@@ -368,21 +233,6 @@ export const useMilestones = () => {
     history: state.history,
     setCurrentMilestone,
     completeMilestone,
-    updateMilestoneWeight,
     resetApp,
-  };
-};
-
-export const useContributionWeights = () => {
-  const { state, dispatch } = useAppContext();
-  
-  const updateContributionWeight = (type: ContributionType, weight: number) => {
-    dispatch({ type: 'UPDATE_CONTRIBUTION_WEIGHT', contributionType: type, weight });
-    dispatch({ type: 'UPDATE_EQUITY_PERCENTAGES' });
-  };
-  
-  return {
-    weights: state.contributionWeights,
-    updateContributionWeight,
   };
 };

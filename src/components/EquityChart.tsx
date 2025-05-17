@@ -3,15 +3,12 @@ import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Founder } from '@/types';
 import { motion } from 'framer-motion';
-import { useContributionWeights } from '@/context/AppContext';
 
 interface EquityChartProps {
   founders: Founder[];
 }
 
 const EquityChart: React.FC<EquityChartProps> = ({ founders }) => {
-  const { weights } = useContributionWeights();
-
   if (founders.length === 0) {
     return (
       <motion.div 
@@ -34,10 +31,6 @@ const EquityChart: React.FC<EquityChartProps> = ({ founders }) => {
     name: founder.name,
     value: founder.equityPercentage,
     color: founder.color,
-    criteriaScore: Object.values(founder.scores).reduce((sum, score) => sum + score, 0),
-    contributionScore: (founder.contributions || []).reduce((sum, contribution) => {
-      return sum + (contribution.amount * weights[contribution.type]);
-    }, 0)
   }));
 
   const RADIAN = Math.PI / 180;
@@ -70,24 +63,6 @@ const EquityChart: React.FC<EquityChartProps> = ({ founders }) => {
     ) : null;
   };
 
-  const customTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-3 border rounded-md shadow-md">
-          <p className="font-medium" style={{ color: data.color }}>{data.name}</p>
-          <p className="text-sm">Equity: <span className="font-bold">{data.value.toFixed(2)}%</span></p>
-          <div className="mt-1 pt-1 border-t border-gray-200 text-xs">
-            <p>Criteria Score: {data.criteriaScore}</p>
-            <p>Contributions: {data.contributionScore.toFixed(1)}</p>
-            <p>Total: {(data.criteriaScore + data.contributionScore).toFixed(1)}</p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <motion.div 
       className="w-full h-full"
@@ -114,7 +89,11 @@ const EquityChart: React.FC<EquityChartProps> = ({ founders }) => {
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip content={customTooltip} />
+          <Tooltip 
+            formatter={(value: number) => `${value.toFixed(2)}%`} 
+            separator=": "
+            animationDuration={300}
+          />
           <Legend verticalAlign="bottom" height={36} />
         </PieChart>
       </ResponsiveContainer>
