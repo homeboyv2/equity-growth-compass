@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { useMilestones } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { generatePDF } from '@/utils/pdfExport';
+import { downloadHTML } from '@/utils/htmlExport';
 import { useAppContext } from '@/context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileDown, ChevronDown, ChevronUp, BarChart } from 'lucide-react';
@@ -25,13 +26,13 @@ const HistoryTable: React.FC = () => {
     return null;
   }
 
-  const handleExportPDF = () => {
+  const handleExportHTML = () => {
     try {
-      generatePDF(state);
-      toast.success('PDF report generated successfully');
+      downloadHTML(state);
+      toast.success('HTML report generated successfully');
     } catch (error) {
-      toast.error('Failed to generate PDF report');
-      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate HTML report');
+      console.error('Error generating HTML:', error);
     }
   };
 
@@ -81,11 +82,11 @@ const HistoryTable: React.FC = () => {
           <Button 
             variant="outline"
             size="sm"
-            onClick={handleExportPDF}
+            onClick={handleExportHTML}
             className="flex items-center gap-1"
           >
             <FileDown className="h-4 w-4" />
-            <span>Export PDF</span>
+            <span>Export HTML</span>
           </Button>
         </div>
       </div>
