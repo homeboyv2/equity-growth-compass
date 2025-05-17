@@ -8,18 +8,8 @@ declare module 'jspdf' {
   interface jsPDF {
     // Define autoTable as a method returning jsPDF
     autoTable: (options: any) => jsPDF;
-  }
-}
-
-// Define the global static property to access the previous finalY position
-declare global {
-  interface Window {
-    jspdf: {
-      AutoTableOutput: {
-        previous: {
-          finalY: number;
-        };
-      };
+    lastAutoTable: {
+      finalY: number;
     };
   }
 }
@@ -58,7 +48,7 @@ export const generatePDF = (state: AppState): void => {
   });
 
   // Get the final Y position after the table
-  const finalY1 = (doc as any).lastAutoTable.finalY;
+  const finalY1 = doc.lastAutoTable.finalY;
 
   // Global Score Summary
   doc.setFontSize(16);
@@ -72,7 +62,11 @@ export const generatePDF = (state: AppState): void => {
   
   doc.setFontSize(12);
   doc.text(`Total Team Score: ${totalScores}`, 20, finalY1 + 25);
-  doc.text(`Average Founder Score: ${(totalScores / founders.length).toFixed(1)}`, 20, finalY1 + 35);
+  doc.text(
+    `Average Founder Score: ${founders.length ? (totalScores / founders.length).toFixed(1) : "0"}`, 
+    20, 
+    finalY1 + 35
+  );
 
   // Scoring details
   doc.setFontSize(16);
@@ -82,39 +76,84 @@ export const generatePDF = (state: AppState): void => {
   for (const founder of founders) {
     doc.setFontSize(12);
     doc.setTextColor(90, 50, 168);
-    doc.text(`${founder.name} - ${founder.role}`, 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 25 : finalY1 + 60);
+    doc.text(
+      `${founder.name} - ${founder.role}`, 
+      20, 
+      doc.lastAutoTable ? doc.lastAutoTable.finalY + 25 : finalY1 + 60
+    );
     
     const totalFounderScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
     
     const scoreData = [
-      ['Role in Project', founder.scores.role, `${((founder.scores.role / totalFounderScore) * 100).toFixed(1)}%`],
-      ['Usefulness', founder.scores.usefulness, `${((founder.scores.usefulness / totalFounderScore) * 100).toFixed(1)}%`],
-      ['Idea Contribution', founder.scores.ideaContribution, `${((founder.scores.ideaContribution / totalFounderScore) * 100).toFixed(1)}%`],
-      ['Business Plan', founder.scores.businessPlan, `${((founder.scores.businessPlan / totalFounderScore) * 100).toFixed(1)}%`],
-      ['Domain Expertise', founder.scores.expertise, `${((founder.scores.expertise / totalFounderScore) * 100).toFixed(1)}%`],
-      ['Commitment & Risk', founder.scores.commitment, `${((founder.scores.commitment / totalFounderScore) * 100).toFixed(1)}%`],
-      ['Operations', founder.scores.operations, `${((founder.scores.operations / totalFounderScore) * 100).toFixed(1)}%`],
+      [
+        'Role in Project', 
+        founder.scores.role, 
+        `${totalFounderScore ? ((founder.scores.role / totalFounderScore) * 100).toFixed(1) : "0"}%`
+      ],
+      [
+        'Usefulness', 
+        founder.scores.usefulness, 
+        `${totalFounderScore ? ((founder.scores.usefulness / totalFounderScore) * 100).toFixed(1) : "0"}%`
+      ],
+      [
+        'Idea Contribution', 
+        founder.scores.ideaContribution, 
+        `${totalFounderScore ? ((founder.scores.ideaContribution / totalFounderScore) * 100).toFixed(1) : "0"}%`
+      ],
+      [
+        'Business Plan', 
+        founder.scores.businessPlan, 
+        `${totalFounderScore ? ((founder.scores.businessPlan / totalFounderScore) * 100).toFixed(1) : "0"}%`
+      ],
+      [
+        'Domain Expertise', 
+        founder.scores.expertise, 
+        `${totalFounderScore ? ((founder.scores.expertise / totalFounderScore) * 100).toFixed(1) : "0"}%`
+      ],
+      [
+        'Commitment & Risk', 
+        founder.scores.commitment, 
+        `${totalFounderScore ? ((founder.scores.commitment / totalFounderScore) * 100).toFixed(1) : "0"}%`
+      ],
+      [
+        'Operations', 
+        founder.scores.operations, 
+        `${totalFounderScore ? ((founder.scores.operations / totalFounderScore) * 100).toFixed(1) : "0"}%`
+      ],
       ['Total Score', totalFounderScore, '100%'],
     ];
 
     doc.autoTable({
-      startY: (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 30 : finalY1 + 65,
+      startY: doc.lastAutoTable ? doc.lastAutoTable.finalY + 30 : finalY1 + 65,
       head: [['Criterion', 'Score (0-10)', 'Percentage']],
       body: scoreData,
       headStyles: { fillColor: [120, 80, 198] },
       foot: [['Equity Allocation', '', `${founder.equityPercentage.toFixed(2)}%`]],
       footStyles: { fillColor: [90, 50, 168], textColor: [255, 255, 255] },
     });
+    
+    // Add a new page if we're running out of space
+    if (doc.lastAutoTable.finalY > 250) {
+      doc.addPage();
+    }
   }
 
   // Equity Evolution History
   if (history.length > 0) {
-    doc.addPage();
+    if (doc.lastAutoTable && doc.lastAutoTable.finalY > 200) {
+      doc.addPage();
+    }
+    
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    doc.text('Equity Evolution History', 20, 20);
+    doc.text(
+      'Equity Evolution History', 
+      20, 
+      doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 20
+    );
 
-    let yPosition = 30;
+    let yPosition = doc.lastAutoTable ? doc.lastAutoTable.finalY + 30 : 30;
+    
     for (const entry of history) {
       doc.setFontSize(12);
       doc.setTextColor(90, 50, 168);
@@ -136,7 +175,7 @@ export const generatePDF = (state: AppState): void => {
         headStyles: { fillColor: [120, 80, 198] },
       });
 
-      yPosition = (doc as any).lastAutoTable.finalY + 15;
+      yPosition = doc.lastAutoTable.finalY + 15;
       
       // Add new page if needed
       if (yPosition > 250) {
@@ -148,22 +187,22 @@ export const generatePDF = (state: AppState): void => {
 
   // Progress Overview
   const completedMilestones = milestones.filter(m => m.completed);
-  if (completedMilestones.length > 0) {
-    if ((doc as any).lastAutoTable && (doc as any).lastAutoTable.finalY > 220) {
+  if (completedMilestones.length > 0 || milestones.some(m => m.current)) {
+    if (doc.lastAutoTable && doc.lastAutoTable.finalY > 220) {
       doc.addPage();
     }
     
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    doc.text('Startup Progress', 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 15 : 40);
+    doc.text('Startup Progress', 20, doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40);
 
     const milestoneData = milestones.map(milestone => [
       milestone.name,
-      milestone.completed ? 'Completed' : milestone.current ? 'In Progress' : 'Pending',
+      milestone.completed ? 'Completed' : milestone.current ? 'In Progress' : 'Pending'
     ]);
 
     doc.autoTable({
-      startY: (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 20 : 45,
+      startY: doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 45,
       head: [['Milestone', 'Status']],
       body: milestoneData,
       headStyles: { fillColor: [90, 50, 168] },
