@@ -7,6 +7,7 @@ import EquityChart from '@/components/EquityChart';
 import AddFounderForm from '@/components/AddFounderForm';
 import FounderScoring from '@/components/FounderScoring';
 import HistoryTable from '@/components/HistoryTable';
+import StepSummary from '@/components/StepSummary';
 import { useFounders, useMilestones } from '@/context/AppContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
@@ -76,6 +77,15 @@ const Index = () => {
                   </CardContent>
                 </Card>
               </motion.div>
+
+              {currentMilestone && (
+                <motion.div variants={itemVariants}>
+                  <StepSummary 
+                    milestone={currentMilestone} 
+                    founders={founders} 
+                  />
+                </motion.div>
+              )}
             </div>
           </motion.div>
           
@@ -91,7 +101,7 @@ const Index = () => {
               </h2>
               <p className="text-sm text-gray-500 mb-6">
                 Score each founder's contribution across the seven criteria. 
-                The equity distribution will update automatically based on the total scores.
+                The equity distribution will update automatically based on the total scores and contributions.
               </p>
               
               {founders.length === 0 ? (

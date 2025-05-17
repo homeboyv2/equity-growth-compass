@@ -13,8 +13,23 @@ export type Founder = {
     commitment: number;
     operations: number;
   };
+  contributions: Contribution[];
   equityPercentage: number;
   color: string;
+};
+
+export type Contribution = {
+  id: string;
+  type: 'cash' | 'time' | 'skills';
+  amount: number;
+  description: string;
+  date: string;
+};
+
+export type ContributionWeights = {
+  cash: number;
+  time: number;
+  skills: number;
 };
 
 export type Milestone = {
@@ -23,12 +38,14 @@ export type Milestone = {
   description: string;
   completed: boolean;
   current: boolean;
+  weight: number; // Added weight field for milestones
 };
 
 export type AppState = {
   founders: Founder[];
   milestones: Milestone[];
   currentMilestoneId: string;
+  contributionWeights: ContributionWeights;
   history: {
     milestoneId: string;
     milestoneName: string;
@@ -53,49 +70,56 @@ export const DEFAULT_MILESTONES: Milestone[] = [
     name: 'Initial Assessment',
     description: 'First evaluation of co-founder contributions',
     completed: false,
-    current: true
+    current: true,
+    weight: 1
   },
   {
     id: 'mvp',
     name: 'MVP Development',
     description: 'Minimum viable product creation phase',
     completed: false,
-    current: false
+    current: false,
+    weight: 1
   },
   {
     id: 'pmf',
     name: 'Product-Market Fit',
     description: 'Validation that product meets market needs',
     completed: false,
-    current: false
+    current: false,
+    weight: 1
   },
   {
     id: 'fundraising',
     name: 'Fundraising Rounds',
     description: 'Securing investment capital',
     completed: false,
-    current: false
+    current: false,
+    weight: 1
   },
   {
     id: 'team-growth',
     name: 'Team Growth & Structure',
     description: 'Expansion of team and organizational structure',
     completed: false,
-    current: false
+    current: false,
+    weight: 1
   },
   {
     id: 'revenue',
     name: 'Revenue Generation',
     description: 'Beginning to generate consistent revenue',
     completed: false,
-    current: false
+    current: false,
+    weight: 1
   },
   {
     id: 'expansion',
     name: 'International Expansion',
     description: 'Expanding operations to new markets',
     completed: false,
-    current: false
+    current: false,
+    weight: 1
   }
 ];
 
@@ -109,3 +133,9 @@ export const FOUNDER_COLORS = [
   '#06B6D4', // Cyan
   '#3B82F6', // Blue
 ];
+
+export const DEFAULT_CONTRIBUTION_WEIGHTS: ContributionWeights = {
+  cash: 1.0,
+  time: 1.0,
+  skills: 1.0
+};

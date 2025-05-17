@@ -1,15 +1,23 @@
 
-import { AppState } from '../types';
+import { AppState, Contribution } from '../types';
 
 /**
  * Generates and downloads an HTML report of the equity distribution
  */
 export const downloadHTML = (state: AppState): void => {
-  const { founders, history, milestones } = state;
+  const { founders, history, milestones, contributionWeights } = state;
   
   // Calculate total scores
   const totalScores = founders.reduce((total, founder) => {
-    return total + Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
+    const criteriaScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
+    let contributionScore = 0;
+    if (founder.contributions?.length > 0) {
+      contributionScore = founder.contributions.reduce((sum, contribution) => {
+        const typeWeight = contributionWeights[contribution.type] || 1;
+        return sum + (contribution.amount * typeWeight);
+      }, 0);
+    }
+    return total + criteriaScore + contributionScore;
   }, 0);
   
   const averageScore = founders.length ? (totalScores / founders.length).toFixed(1) : "0";
@@ -98,6 +106,25 @@ export const downloadHTML = (state: AppState): void => {
         .pending {
           color: #666;
         }
+        .badge {
+          display: inline-block;
+          font-size: 12px;
+          padding: 3px 8px;
+          border-radius: 12px;
+          margin-right: 4px;
+        }
+        .badge.cash {
+          background-color: rgba(16, 185, 129, 0.1);
+          color: rgb(16, 185, 129);
+        }
+        .badge.time {
+          background-color: rgba(99, 102, 241, 0.1);
+          color: rgb(99, 102, 241);
+        }
+        .badge.skills {
+          background-color: rgba(244, 63, 94, 0.1);
+          color: rgb(244, 63, 94);
+        }
         footer {
           margin-top: 40px;
           border-top: 1px solid #ddd;
@@ -155,6 +182,64 @@ export const downloadHTML = (state: AppState): void => {
         </div>
       </div>
   `;
+
+  // Add milestone weights section
+  htmlContent += `
+    <h2>Milestone Weights</h2>
+    <p>How each growth stage impacts equity calculations:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Milestone</th>
+          <th>Status</th>
+          <th>Weight</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  milestones.forEach(milestone => {
+    const status = milestone.completed ? 'Completed' : (milestone.current ? 'In Progress' : 'Pending');
+    const statusClass = milestone.completed ? 'completed' : (milestone.current ? 'in-progress' : 'pending');
+    
+    htmlContent += `
+      <tr>
+        <td>${milestone.name}</td>
+        <td class="${statusClass}">${status}</td>
+        <td><strong>${milestone.weight.toFixed(1)}x</strong></td>
+      </tr>
+    `;
+  });
+
+  htmlContent += `
+      </tbody>
+    </table>
+
+    <h2>Contribution Type Weights</h2>
+    <p>How different contribution types impact equity calculations:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Contribution Type</th>
+          <th>Weight Multiplier</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Cash Investment</td>
+          <td><strong>${contributionWeights.cash.toFixed(1)}x</strong></td>
+        </tr>
+        <tr>
+          <td>Time Contribution</td>
+          <td><strong>${contributionWeights.time.toFixed(1)}x</strong></td>
+        </tr>
+        <tr>
+          <td>Skills/Resources</td>
+          <td><strong>${contributionWeights.skills.toFixed(1)}x</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  `;
   
   // Detailed scoring for each founder
   htmlContent += `<h2>Detailed Scoring</h2>`;
@@ -203,14 +288,95 @@ export const downloadHTML = (state: AppState): void => {
           <td><strong>100%</strong></td>
         </tr>
       </tbody>
-      <tfoot>
-        <tr style="background-color: #5a32a8; color: white;">
-          <td><strong>Equity Allocation</strong></td>
-          <td></td>
-          <td><strong>${founder.equityPercentage.toFixed(2)}%</strong></td>
-        </tr>
-      </tfoot>
     </table>
+    `;
+
+    // Add contributions section for each founder
+    if (founder.contributions && founder.contributions.length > 0) {
+      htmlContent += `
+        <h4>Additional Contributions</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Description</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      // Group contributions by type
+      const groupedContributions: Record<string, Contribution[]> = {
+        cash: [],
+        time: [],
+        skills: []
+      };
+
+      founder.contributions.forEach(contribution => {
+        if (!groupedContributions[contribution.type]) {
+          groupedContributions[contribution.type] = [];
+        }
+        groupedContributions[contribution.type].push(contribution);
+      });
+
+      // Add rows for each contribution
+      Object.entries(groupedContributions).forEach(([type, contributions]) => {
+        if (contributions.length > 0) {
+          contributions.forEach(contribution => {
+            htmlContent += `
+              <tr>
+                <td>
+                  <span class="badge ${type}">
+                    ${type.charAt(0).toUpperCase() + type.slice(1)}
+                  </span>
+                </td>
+                <td>
+                  ${type === 'cash' ? '$' : ''}${contribution.amount}${type === 'time' ? ' hours' : ''}
+                </td>
+                <td>${contribution.description}</td>
+                <td>${new Date(contribution.date).toLocaleDateString()}</td>
+              </tr>
+            `;
+          });
+        }
+      });
+
+      // Calculate contribution totals
+      const contributionTotals = {
+        cash: founder.contributions.filter(c => c.type === 'cash').reduce((sum, c) => sum + c.amount, 0),
+        time: founder.contributions.filter(c => c.type === 'time').reduce((sum, c) => sum + c.amount, 0),
+        skills: founder.contributions.filter(c => c.type === 'skills').reduce((sum, c) => sum + c.amount, 0)
+      };
+
+      htmlContent += `
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4">
+                <strong>Totals:</strong>
+                ${contributionTotals.cash > 0 ? `<span class="badge cash">$${contributionTotals.cash.toLocaleString()}</span>` : ''}
+                ${contributionTotals.time > 0 ? `<span class="badge time">${contributionTotals.time.toLocaleString()} hours</span>` : ''}
+                ${contributionTotals.skills > 0 ? `<span class="badge skills">${contributionTotals.skills.toLocaleString()} units</span>` : ''}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+    }
+
+    // Add equity allocation footer
+    htmlContent += `
+      <table>
+        <tfoot>
+          <tr style="background-color: #5a32a8; color: white;">
+            <td><strong>Equity Allocation</strong></td>
+            <td></td>
+            <td><strong>${founder.equityPercentage.toFixed(2)}%</strong></td>
+          </tr>
+        </tfoot>
+      </table>
     `;
   });
   
