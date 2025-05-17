@@ -2,12 +2,9 @@
 import React, { useState } from 'react';
 import { useMilestones } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Download } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import AnimatedLogo from './AnimatedLogo';
 import { motion } from 'framer-motion';
-import { generatePDF } from '@/utils/pdfExport';
-import { useAppContext } from '@/context/AppContext';
-import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,22 +19,11 @@ import {
 
 const Header: React.FC = () => {
   const { resetApp } = useMilestones();
-  const { state } = useAppContext();
   const [isOpen, setIsOpen] = useState(false);
   
   const handleReset = () => {
     resetApp();
     setIsOpen(false);
-  };
-  
-  const handleExportPDF = () => {
-    try {
-      generatePDF(state);
-      toast.success('PDF report generated successfully');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.error('Failed to generate PDF report');
-    }
   };
   
   return (
@@ -50,55 +36,38 @@ const Header: React.FC = () => {
       <div className="container mx-auto flex justify-between items-center">
         <AnimatedLogo />
         
-        <div className="flex items-center gap-3">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button 
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1"
-              onClick={handleExportPDF}
+        <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+          <AlertDialogTrigger asChild>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <Download className="h-4 w-4" />
-              <span>Export PDF</span>
-            </Button>
-          </motion.div>
-          
-          <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-            <AlertDialogTrigger asChild>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <Button 
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
               >
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Reset</span>
-                </Button>
-              </motion.div>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reset All Data?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will clear all co-founders, equity distributions, and history data.
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleReset}>
-                  Reset Everything
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+                <RefreshCw className="h-4 w-4" />
+                <span>Reset</span>
+              </Button>
+            </motion.div>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset All Data?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will clear all co-founders, equity distributions, and history data.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleReset}>
+                Reset Everything
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </motion.header>
   );

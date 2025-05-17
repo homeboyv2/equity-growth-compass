@@ -72,7 +72,7 @@ export const generatePDF = (state: AppState): void => {
   
   doc.setFontSize(12);
   doc.text(`Total Team Score: ${totalScores}`, 20, finalY1 + 25);
-  doc.text(`Average Founder Score: ${founders.length ? (totalScores / founders.length).toFixed(1) : "0"}`, 20, finalY1 + 35);
+  doc.text(`Average Founder Score: ${(totalScores / founders.length).toFixed(1)}`, 20, finalY1 + 35);
 
   // Scoring details
   doc.setFontSize(16);
@@ -87,13 +87,13 @@ export const generatePDF = (state: AppState): void => {
     const totalFounderScore = Object.values(founder.scores).reduce((sum, score) => sum + score, 0);
     
     const scoreData = [
-      ['Role in Project', founder.scores.role, `${totalFounderScore ? ((founder.scores.role / totalFounderScore) * 100).toFixed(1) : "0"}%`],
-      ['Usefulness', founder.scores.usefulness, `${totalFounderScore ? ((founder.scores.usefulness / totalFounderScore) * 100).toFixed(1) : "0"}%`],
-      ['Idea Contribution', founder.scores.ideaContribution, `${totalFounderScore ? ((founder.scores.ideaContribution / totalFounderScore) * 100).toFixed(1) : "0"}%`],
-      ['Business Plan', founder.scores.businessPlan, `${totalFounderScore ? ((founder.scores.businessPlan / totalFounderScore) * 100).toFixed(1) : "0"}%`],
-      ['Domain Expertise', founder.scores.expertise, `${totalFounderScore ? ((founder.scores.expertise / totalFounderScore) * 100).toFixed(1) : "0"}%`],
-      ['Commitment & Risk', founder.scores.commitment, `${totalFounderScore ? ((founder.scores.commitment / totalFounderScore) * 100).toFixed(1) : "0"}%`],
-      ['Operations', founder.scores.operations, `${totalFounderScore ? ((founder.scores.operations / totalFounderScore) * 100).toFixed(1) : "0"}%`],
+      ['Role in Project', founder.scores.role, `${((founder.scores.role / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Usefulness', founder.scores.usefulness, `${((founder.scores.usefulness / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Idea Contribution', founder.scores.ideaContribution, `${((founder.scores.ideaContribution / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Business Plan', founder.scores.businessPlan, `${((founder.scores.businessPlan / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Domain Expertise', founder.scores.expertise, `${((founder.scores.expertise / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Commitment & Risk', founder.scores.commitment, `${((founder.scores.commitment / totalFounderScore) * 100).toFixed(1)}%`],
+      ['Operations', founder.scores.operations, `${((founder.scores.operations / totalFounderScore) * 100).toFixed(1)}%`],
       ['Total Score', totalFounderScore, '100%'],
     ];
 
@@ -105,24 +105,16 @@ export const generatePDF = (state: AppState): void => {
       foot: [['Equity Allocation', '', `${founder.equityPercentage.toFixed(2)}%`]],
       footStyles: { fillColor: [90, 50, 168], textColor: [255, 255, 255] },
     });
-    
-    // Add a new page if we're running out of space
-    if ((doc as any).lastAutoTable.finalY > 250) {
-      doc.addPage();
-    }
   }
 
   // Equity Evolution History
   if (history.length > 0) {
-    if ((doc as any).lastAutoTable && (doc as any).lastAutoTable.finalY > 200) {
-      doc.addPage();
-    }
-    
+    doc.addPage();
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
-    doc.text('Equity Evolution History', 20, (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 20 : 20);
+    doc.text('Equity Evolution History', 20, 20);
 
-    let yPosition = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 30 : 30;
+    let yPosition = 30;
     for (const entry of history) {
       doc.setFontSize(12);
       doc.setTextColor(90, 50, 168);
@@ -156,7 +148,7 @@ export const generatePDF = (state: AppState): void => {
 
   // Progress Overview
   const completedMilestones = milestones.filter(m => m.completed);
-  if (completedMilestones.length > 0 || milestones.some(m => m.current)) {
+  if (completedMilestones.length > 0) {
     if ((doc as any).lastAutoTable && (doc as any).lastAutoTable.finalY > 220) {
       doc.addPage();
     }
